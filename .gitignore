@@ -1,0 +1,4 @@
+*.pdf
+*.pdf.bckp
+*.txt
+.env/
