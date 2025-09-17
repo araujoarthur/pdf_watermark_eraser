@@ -2,6 +2,7 @@
 
 Erases the watermark on bottom end of pages in PDF e-Books.
 
+Only works with **HORIZONTAL TEXTUAL** watermarks.
 
 ## Usage
 
