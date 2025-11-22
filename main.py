@@ -47,5 +47,6 @@ def redact_lic(in_pdf, out_pdf, txt):
         page.apply_redactions(images=pymupdf.PDF_REDACT_IMAGE_NONE)
     
     doc.save(out_pdf)
+    doc.close()
     print("Successful!")
 main()
