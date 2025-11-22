@@ -43,8 +43,9 @@ def redact_lic(in_pdf, out_pdf, txt):
     for page in doc.pages():
         occurences = page.search_for(txt)
         for occ in occurences:
-            page.add_redact_annot(occ.quad)
-        page.apply_redactions()
+            page.add_redact_annot(occ.quad, fill=None)
+        page.apply_redactions(images=pymupdf.PDF_REDACT_IMAGE_NONE)
     
     doc.save(out_pdf)
+    print("Successful!")
 main()
