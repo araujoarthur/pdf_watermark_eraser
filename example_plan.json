@@ -1,0 +1,14 @@
+{
+    "rootMode":"multi",
+    "folderMode":"multi",
+    "ignoreOutputPathIntegrity":true,
+    "deleteOriginal": true,
+    "rootInputPath":"./MultiTestPath",
+    "excludedFolderNames":[
+        "FolderThatShouldNotBeChecked"
+    ],
+    "outputPath":"./test",
+    "redactionTexts": [
+        "Foo"
+    ]
+}
