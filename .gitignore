@@ -2,3 +2,6 @@
 *.pdf.bckp
 *.txt
 .env/
+/plan.json
+MultiTestPath/
+testPath/

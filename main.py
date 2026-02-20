@@ -2,6 +2,8 @@ import pymupdf
 import argparse
 from pathlib import Path
 import json
+from consts import get_help_text
+from plan import RedactionPlan
 
 parser = argparse.ArgumentParser(
     prog="PDF Watermark Eraser",
@@ -9,19 +11,10 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('-p', '--plan', type=str, help="path for the 'plan.json' file")
 
-def readPlan(plan: str):
-    plan_path = Path(plan)
-    if not (plan_path.exists() and plan_path.is_file()):
-        raise FileNotFoundError(f"the path '{plan_path}' was not found.")
-    
-    plan_data = {}
-    with open(plan_path, "r", encoding="utf-8") as f:
-        plan_data = json.load(f)
-    
-    return plan_data
-
-
 def old_main():
+    """
+    @Deprecated
+    """
     args = parser.parse_args()
     
 
@@ -42,7 +35,7 @@ def old_main():
             raise ValueError(f"unexpectedly high number of lines in the license text file")
         lic_text = lines[0].strip().strip("\n")
 
-    redact_lic(
+    redact_str(
         inp,
         outp,
         lic_text
@@ -54,108 +47,104 @@ def main():
     plan_path = Path(args.plan).resolve() if (args.plan and Path(args.plan).exists()) else Path.cwd() / 'plan.json'
 
     if not plan_path.exists():
-        print("FAILED: no path plan was given and there's no plan.json in the current working folder")
+        print(f"FAILED: no path plan was given and there's no plan.json in the current working folder{get_help_text}")
         exit()
 
-    plan = readPlan(plan_path)
+    plan = RedactionPlan(plan_path)
 
-    planOptions = {}
-    # single = root is a file directly; multi = root is a folder with multiple files/folders
-    planOptions['running_mode'] = plan['rootMode'].lower() if ('rootMode' in plan) else 'single'
-    # only useful if running_mode is 'multi'. 
-    # folderMode can be:
-    #  "list", meaning the root folder itself contains multiple files
-    #  "parenting_singles", meaning the root folder is parent of other folders with one file each
-    #  "parenting_multi", meaning the root folder is parent of other folders containing subfolders and files.
-    planOptions['folder_mode'] = plan['folderMode'].lower() if ('folderMode' in plan) else 'parenting_multi'
 
-    planOptions['delete_original'] = plan['deleteOriginal'] if ('deleteOriginal' in plan) else False
+    # single = root is a file directly; 
+    # multi = root is a folder with multiple files/folders
+    try:
 
-    planOptions['continue_even_if_exists'] = plan['ignoreOutputPathIntegrity'] if ('ignoreOutputPathIntegrity' in plan) else False
 
-    root_input_path = Path(plan['rootInputPath']).resolve()
-    if not root_input_path.exists():
-        print("input root path not Found")
-        exit()
-    elif planOptions['running_mode'] == 'single' and (not root_input_path.is_file()):
-        print("the running mode is set to 'SINGLE', but the rootInputPath is not a file")
-        exit()
-    elif planOptions['running_mode'] != 'single' and (not root_input_path.is_dir()):
-        print("the running mode is set to 'MULTI', but the rootInputPath is not a folder")
-        exit()
 
-    output_path = Path(plan['outputPath']).resolve()
-    if output_path.exists():
-        if not planOptions['continue_even_if_exists']:
-            print("the output path already exists, set the option 'ignoreOutputPathIntegrity' to true to continue anyways")
+        planOptions['delete_original'] = plan['deleteOriginal'] if ('deleteOriginal' in plan) else False
+
+        planOptions['continue_even_if_exists'] = plan['ignoreOutputPathIntegrity'] if ('ignoreOutputPathIntegrity' in plan) else False
+
+        # Sanitizes, validates and saves the Root Input Path
+        root_input_path = Path(plan['rootInputPath']).resolve()
+        if not root_input_path.exists():
+            print("input root path not Found")
             exit()
+        elif planOptions['root_mode'] == 'single' and (not root_input_path.is_file()):
+            print("the running mode is set to 'SINGLE', but the rootInputPath is not a file")
+            exit()
+        elif planOptions['root_mode'] != 'single' and (not root_input_path.is_dir()):
+            print("the running mode is set to 'MULTI', but the rootInputPath is not a folder")
+            exit()
+
+        planOptions['root_input_path'] = root_input_path
+
+        # Sanitizes, validates and saves the Output Path
+        output_path = Path(plan['outputPath']).resolve()
         
-        if planOptions['running_mode'] != 'single' and output_path.is_file():
-            print("the output path is a file, but the running mode is not 'single'")
+        if output_path.exists():
+            if not planOptions['continue_even_if_exists']:
+                print(f"FAILED: the output path already exists, set the option 'ignoreOutputPathIntegrity' to true to continue anyways{get_help_text}")
+                exit()
+            
+            if planOptions['root_mode'] != 'single' and output_path.is_file():
+                print(f"FAILED: the output path is a file, but the running mode is not 'single'{get_help_text}")
+                exit()
+        
+        planOptions['output_path'] = output_path
+        
+        disallowed_folders = plan['excludedFolderNames'] if ('excludedFolderNames' in plan) else []
+        planOptions['disallowed_folders'] = disallowed_folders
+
+        redaction_texts = plan['redactionTexts'] if ('redactionTexts' in plan) else None
+        if not redaction_texts:
+            print(f"FAILED: there are no texts to redact{get_help_text}")
             exit()
-    
-    disallowed_folders = plan['excludedFolderNames'] if ('excludedFolderNames' in plan) else [] 
-    redaction_texts = plan['redactionTexts'] if ('redactionTexts' in plan) else None
-    if not redaction_texts:
-        print("there are no texts to redact.")
-        exit()
-    
+
+    except KeyError:
+        
     # Yes, the excludedFolderNames expect only the name of the folders.
-    folders = [p for p in root_input_path.iterdir() if (p.is_dir() and p.name not in disallowed_folders)]
+    # Do I really need to (or even CAN) do this HERE?
+    #folders = [p for p in root_input_path.iterdir() if (p.is_dir() and p.name not in disallowed_folders)]
 
     redact_strategy = select_redact_strategy(planOptions)
-    redact_strategy(output_path, folders, root_input_path)
+    #redact_strategy(...) # Run the strat
 
-    ...
+    # ... I believe the code below is to be discarded as the redact_strategy
+    # must implement the file redaction.
+    # The code below describes a Root with multiple folders (rootMode: Multi)
+    # where each folder has multiple files
 
-    for folder in folders:
-        pdfs = [p for p in folder.iterdir() if (p.is_file() and p.suffix.lower() == ".pdf")]
-        if len(pdfs) > 1:
-            print(f"Something is wrong, {folder.name} has more than one PDF file inside")
-            continue
+    #for folder in folders:
+    #    pdfs = [p for p in folder.iterdir() if (p.is_file() and p.suffix.lower() == ".pdf")]
+    #    if len(pdfs) > 1:
+    #        print(f"Something is wrong, {folder.name} has more than one PDF file inside")
+    #        continue
         
-        if len(pdfs) == 0:
-            print(f"Something is wrong, {folder.name} has no PDF files inside")
-            continue
+    #    if len(pdfs) == 0:
+    #        print(f"Something is wrong, {folder.name} has no PDF files inside")
+    #        continue
             
-        pdf_file = pdfs.pop()
+    #    pdf_file = pdfs.pop()
 
-        subpath = folder / pdf_file.stem
-        subpath.mkdir()
+    #    subpath = folder / pdf_file.stem
+    #    subpath.mkdir()
 
-        output_redacted_file = subpath / (pdf_file.stem + "_r.pdf")
+    #    output_redacted_file = subpath / (pdf_file.stem + "_r.pdf")
 
-        multiredact(pdf_file.resolve(), output_redacted_file.resolve(), redaction_texts)
-        pdf_file.unlink()
+    #    multiredact(pdf_file.resolve(), output_redacted_file.resolve(), redaction_texts)
+    #    pdf_file.unlink()
 
-        print(f"File {pdf_file.stem} redacted and removed.")
-
-
-def select_redact_strategy(popts):
-    pass
-
-def strategy_single_file(output_path, **kwargs):
-    """
-    Docstring for strategy_single_file
-    
-    :param folders: Description
-    :param output_path: Description
-
-    This assumes the root input path refers to a file.
-    """
-    file_path = kwargs.get('root_input_path')
-    if file_path == None:
-        raise TypeError('invalid argument for the selected strategy; could not get file path')
-
-    if not file_path.exists():
-        raise FileNotFoundError(f"the file '{file_path}' was not found.")
-    
-    ...
-    
-
+    #    print(f"File {pdf_file.stem} redacted and removed.")
 
 
 def multiredact(in_pdf, out_pdf, texts):
+    """
+    Redacts all occurrences of multiple different strings
+    in a PDF file and saves it to a new PDF file.
+
+    :param in_pdf: Name/path of the input pdf
+    :param out_pdf: Name/path of the output pdf
+    :param texts: Strings to look for and redact
+    """
     doc = pymupdf.open(in_pdf)
 
     for page in doc.pages():
@@ -169,7 +158,16 @@ def multiredact(in_pdf, out_pdf, texts):
     doc.save(out_pdf, garbage=4, deflate=True)
     doc.close()
 
-def redact_lic(in_pdf, out_pdf, txt):
+
+def redact_str(in_pdf, out_pdf, txt):
+    """
+    Redacts all occurences of a single string in a PDF file
+    and saves the output to a new PDF file.
+
+    :param in_pdf: Description
+    :param out_pdf: Description
+    :param txt: Description
+    """
     doc = pymupdf.open(in_pdf)
     for page in doc.pages():
         occurences = page.search_for(txt)
@@ -180,4 +178,64 @@ def redact_lic(in_pdf, out_pdf, txt):
     doc.save(out_pdf)
     doc.close()
     print("Successful!")
-main()
+
+
+def strategy_single_file(popts):
+    """
+    This strategy assumes the root input path refers to a file.
+    """
+    file_path = popts.get('root_input_path', None)
+    if file_path == None:
+        raise TypeError('invalid argument for the selected strategy; could not get file path')
+
+    if not file_path.exists():
+        raise FileNotFoundError(f"the file '{file_path}' was not found.")
+    
+    output_path = popts.get('output_path', None)
+    if output_path == None:
+        raise TypeError("invalid argument for the selected strategy; could not get output path")
+    
+    multiredact(file_path, output_path)
+
+
+
+STRATEGIES = {
+    "single:single": strategy_single_file,
+    "multi:list": None,
+    "multi:parenting": None,
+    "multi:recursive": None
+}
+
+def select_redact_strategy(popts):
+    """
+    Selects the right builder for the strategy and dispatch the correct strategy as function
+
+    Possible strategies are
+        - root_mode == "single" && folder_mode == "single" -> strategy_single_file(...)
+        - root_mode == "multi" && folder_mode == "list" -> strategy_multi_file(...)
+        - root_mode == "multi" && folder_mode == "parenting" -> strategy_multi_folder_files(...)
+        - root_mode == "multi" && folder_mode == "recursive" -> strategy_recursive(...)
+    
+    :param popts: Plan Options
+
+    """
+
+    if popts['root_mode'] == "single":
+        return strategy_single_file
+    elif popts['root_mode'] == "multi":
+        if popts['folder_mode'] == "list":
+            pass
+        elif popts['folder_mode'] == "parenting":
+            pass
+        elif popts['folder_mode'] == "recursive":
+            pass
+        else:
+            print(f"FAILED: Invalid or incompatible folderMode ({popts['folder_mode']}) retrieved from plan file{get_help_text}")
+            exit()
+    else:
+        print(f"FAILED: Invalid rootMode ({popts['root_mode']}) retrieved from plan file{get_help_text}")
+        exit()
+
+
+if __name__ == "__main__":
+    main()
