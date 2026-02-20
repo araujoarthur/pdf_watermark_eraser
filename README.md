@@ -121,7 +121,8 @@ This option holds the *exact* strings to be searched and removed from the file.
 
 >[!caution]
 > As of now, the script will not try to distinguish an watermark of actual file content,
-> so **be careful when passing too simple values or single words**.
+> so **be careful when passing single words or strings that are too simple and prone to appear as content**
+> because these ***might cause information loss*** on the output file.
 
 > [!warning]
 > *Exact* here means **exact**. When passing strings, the elements `Text` and `text` are not equal.
