@@ -18,8 +18,8 @@ If `-p` is not used, the script expects a file `plan.json` to exist in the worki
 
 ```json
 {
-    "rootMode":"multi" \| "single",
-    "folderMode":"list" \| "single" | "parenting" | "recursive",
+    "rootMode":"multi" | "single",
+    "folderMode":"list" | "single" | "parenting" | "recursive",
     "ignoreOutputPathIntegrity":true | false,
     "deleteOriginal": true | false,
     "rootInputPath":"./EXAMPLE_PATH",
