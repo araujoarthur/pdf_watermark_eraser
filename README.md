@@ -75,7 +75,7 @@ When set to `true`, it will continue the execution even if the output path or fi
 
 ---
 
-#### `deleteOriginal``
+#### `deleteOriginal`
 
 - `true`, `false`
 
@@ -84,6 +84,20 @@ This option defines the behavior regarding the original file after a successful 
 When set to `true`, the script will delete the original file after a successful redaction.
 
 #### `rootInputPath`
+
+- *path string*
+
+This option defines the starting (*root*) point of the redaction. It's nature (`file` or `folder`) must match what is expected from the `rootMode` and `folderMode` options.
+
+#### `excludedFolderNames`
+
+- `list` of *strings*
+
+This option holds the folder names to be ignored within the process.
+
+>[!warning]
+> As of now, this option hold folder names to be ignored within the whole TREE.
+> Eventually, an option will be added to ignore certain paths.
 
 ## Requirements
 
