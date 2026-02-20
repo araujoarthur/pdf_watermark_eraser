@@ -52,60 +52,12 @@ def main():
 
     plan = RedactionPlan(plan_path)
 
-
-    # single = root is a file directly; 
-    # multi = root is a folder with multiple files/folders
-    try:
-
-
-
-        planOptions['delete_original'] = plan['deleteOriginal'] if ('deleteOriginal' in plan) else False
-
-        planOptions['continue_even_if_exists'] = plan['ignoreOutputPathIntegrity'] if ('ignoreOutputPathIntegrity' in plan) else False
-
-        # Sanitizes, validates and saves the Root Input Path
-        root_input_path = Path(plan['rootInputPath']).resolve()
-        if not root_input_path.exists():
-            print("input root path not Found")
-            exit()
-        elif planOptions['root_mode'] == 'single' and (not root_input_path.is_file()):
-            print("the running mode is set to 'SINGLE', but the rootInputPath is not a file")
-            exit()
-        elif planOptions['root_mode'] != 'single' and (not root_input_path.is_dir()):
-            print("the running mode is set to 'MULTI', but the rootInputPath is not a folder")
-            exit()
-
-        planOptions['root_input_path'] = root_input_path
-
-        # Sanitizes, validates and saves the Output Path
-        output_path = Path(plan['outputPath']).resolve()
-        
-        if output_path.exists():
-            if not planOptions['continue_even_if_exists']:
-                print(f"FAILED: the output path already exists, set the option 'ignoreOutputPathIntegrity' to true to continue anyways{get_help_text}")
-                exit()
-            
-            if planOptions['root_mode'] != 'single' and output_path.is_file():
-                print(f"FAILED: the output path is a file, but the running mode is not 'single'{get_help_text}")
-                exit()
-        
-        planOptions['output_path'] = output_path
-        
-        disallowed_folders = plan['excludedFolderNames'] if ('excludedFolderNames' in plan) else []
-        planOptions['disallowed_folders'] = disallowed_folders
-
-        redaction_texts = plan['redactionTexts'] if ('redactionTexts' in plan) else None
-        if not redaction_texts:
-            print(f"FAILED: there are no texts to redact{get_help_text}")
-            exit()
-
-    except KeyError:
-        
     # Yes, the excludedFolderNames expect only the name of the folders.
     # Do I really need to (or even CAN) do this HERE?
     #folders = [p for p in root_input_path.iterdir() if (p.is_dir() and p.name not in disallowed_folders)]
 
-    redact_strategy = select_redact_strategy(planOptions)
+    redaction = select_redact_strategy(plan)
+    redaction()
     #redact_strategy(...) # Run the strat
 
     # ... I believe the code below is to be discarded as the redact_strategy
@@ -180,22 +132,25 @@ def redact_str(in_pdf, out_pdf, txt):
     print("Successful!")
 
 
-def strategy_single_file(popts):
+def strategy_single_file(popts: RedactionPlan):
     """
     This strategy assumes the root input path refers to a file.
     """
-    file_path = popts.get('root_input_path', None)
-    if file_path == None:
-        raise TypeError('invalid argument for the selected strategy; could not get file path')
+    def strategy():
+        file_path = popts.root_input_path()
+        if file_path == None:
+            raise TypeError('invalid argument for the selected strategy; could not get file path')
 
-    if not file_path.exists():
-        raise FileNotFoundError(f"the file '{file_path}' was not found.")
-    
-    output_path = popts.get('output_path', None)
-    if output_path == None:
-        raise TypeError("invalid argument for the selected strategy; could not get output path")
-    
-    multiredact(file_path, output_path)
+        if not file_path.exists():
+            raise FileNotFoundError(f"the file '{file_path}' was not found.")
+        
+        output_path = popts.output_path()
+        if output_path == None:
+            raise TypeError("invalid argument for the selected strategy; could not get output path")
+        
+        multiredact(file_path, output_path, popts.redaction_texts())
+
+    return strategy
 
 
 
@@ -206,7 +161,7 @@ STRATEGIES = {
     "multi:recursive": None
 }
 
-def select_redact_strategy(popts):
+def select_redact_strategy(popts: RedactionPlan):
     """
     Selects the right builder for the strategy and dispatch the correct strategy as function
 
@@ -220,21 +175,12 @@ def select_redact_strategy(popts):
 
     """
 
-    if popts['root_mode'] == "single":
-        return strategy_single_file
-    elif popts['root_mode'] == "multi":
-        if popts['folder_mode'] == "list":
-            pass
-        elif popts['folder_mode'] == "parenting":
-            pass
-        elif popts['folder_mode'] == "recursive":
-            pass
-        else:
-            print(f"FAILED: Invalid or incompatible folderMode ({popts['folder_mode']}) retrieved from plan file{get_help_text}")
-            exit()
+    qualified_strategy = f"{popts.root_mode()}:{popts.folder_mode()}"
+
+    if qualified_strategy in STRATEGIES:
+        return STRATEGIES[qualified_strategy](popts)
     else:
-        print(f"FAILED: Invalid rootMode ({popts['root_mode']}) retrieved from plan file{get_help_text}")
-        exit()
+        raise RuntimeError("no strategy found for the given plan")
 
 
 if __name__ == "__main__":
