@@ -83,11 +83,15 @@ This option defines the behavior regarding the original file after a successful 
 
 When set to `true`, the script will delete the original file after a successful redaction.
 
+---
+
 #### `rootInputPath`
 
 - *path string*
 
 This option defines the starting (*root*) point of the redaction. It's nature (`file` or `folder`) must match what is expected from the `rootMode` and `folderMode` options.
+
+---
 
 #### `excludedFolderNames`
 
