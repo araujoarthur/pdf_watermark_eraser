@@ -119,7 +119,7 @@ This option holds the directory where the converted files will be saved. If you'
 
 This option holds the *exact* strings to be searched and removed from the file.
 
->[!danger]
+>[!caution]
 > As of now, the script will not try to distinguish an watermark of actual file content,
 > so **be careful when passing too simple values or single words**.
 
