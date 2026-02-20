@@ -33,6 +33,20 @@ If `-p` is not used, the script expects a file `plan.json` to exist in the worki
 }
 ```
 
+#### `rootMode`
+
+- `single`, `multi`
+
+When set to `single`, the script will assume the `rootInputPath` refers to a **file** and will ignore the value of `folderMode`.
+
+If set to `multi`, the script will assume the `rootInputPath` is a folder and delegate the decision about it's contents to `folderMode` value.
+
+if no `rootMode` is provided, the value is defaulted to `single`.
+
+#### `folderMode`
+
+
+
 
 ## Requirements
 
