@@ -101,7 +101,32 @@ This option holds the folder names to be ignored within the process.
 
 >[!warning]
 > As of now, this option hold folder names to be ignored within the whole TREE.
-> Eventually, an option will be added to ignore certain paths.
+> **Eventually**, an option will be added to ignore certain paths.
+
+---
+
+#### `outputPath`
+
+- *path string*
+
+This option holds the directory where the converted files will be saved. If you're running with `folderMode` set to `parenting` or `recursive`, the structure of the `rootInputPath` will be recreated within `outputPath`.
+
+---
+
+#### `redactionTexts`
+
+- `list` of *string*
+
+This option holds the *exact* strings to be searched and removed from the file.
+
+>[!danger]
+> As of now, the script will not try to distinguish an watermark of actual file content,
+> so **be careful when passing too simple values or single words**.
+
+> [!warning]
+> *Exact* here means **exact**. When passing strings, the elements `Text` and `text` are not equal.
+
+---
 
 ## Requirements
 
