@@ -39,9 +39,11 @@ If `-p` is not used, the script expects a file `plan.json` to exist in the worki
 
 - `single`, `multi`
 
+This option declares the nature of the `rootInputPath`.
+
 When set to `single`, the script will assume the `rootInputPath` refers to a **file** and will ignore the value of `folderMode`.
 
-If set to `multi`, the script will assume the `rootInputPath` is a folder and delegate the decision about it's contents to `folderMode` value.
+When set to `multi`, the script will assume the `rootInputPath` is a folder and delegate the decision about it's contents to `folderMode` value.
 
 if no `rootMode` is provided, the value is defaulted to `single`.
 
@@ -49,8 +51,39 @@ if no `rootMode` is provided, the value is defaulted to `single`.
 
 #### `folderMode`
 
+- `single`, `list`, `parenting`, `recursive`
 
+This option declares the structure of the `rootInputPath` and is pivotal for redaction strategy selection.
 
+When set to `single`, the script will assume the `rootInputPath` is a single file.
+
+When set to `list`, the script will assume the `rootInputPath` is a folder containing one or more PDF files.
+
+When set to `parenting`, the script will assume the `rootInputPath` contents are folders whose direct children are files.
+
+When set to `recursive`, the script will assume `rootInputPath` contents are files or folders, the latter having other folders or files as children.
+
+---
+
+#### `ignoreOutputPathIntegrity`
+
+- `true`, `false`
+
+This option defines the behavior of the outputing portion of the script.
+
+When set to `true`, it will continue the execution even if the output path or file already exists on the target destination.
+
+---
+
+#### `deleteOriginal``
+
+- `true`, `false`
+
+This option defines the behavior regarding the original file after a successful redaction.
+
+When set to `true`, the script will delete the original file after a successful redaction.
+
+#### `rootInputPath`
 
 ## Requirements
 
